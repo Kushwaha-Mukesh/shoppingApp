@@ -9,6 +9,14 @@ const app = express();
 // morgan middlware
 app.use(morgan("tiny"));
 
+// regular middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// cookies and file upload
+app.use(cookieParser());
+app.use(fileUpload());
+
 // for swagger documentation
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
@@ -21,16 +29,10 @@ try {
 
 // importing routes
 const route = require("./routes/routes");
-
-// regular middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// cookies and file upload
-app.use(cookieParser());
-app.use(fileUpload());
+const userRoutes = require("./routes/userRoutes");
 
 // router middleware
 app.use("/api/v1", route);
+app.use("/api/v1/user", userRoutes);
 
 module.exports = app;
