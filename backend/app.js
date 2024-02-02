@@ -15,7 +15,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // cookies and file upload
 app.use(cookieParser());
-app.use(fileUpload());
+app.use(
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: "/temp/",
+  })
+);
 
 // for swagger documentation
 const swaggerUi = require("swagger-ui-express");
