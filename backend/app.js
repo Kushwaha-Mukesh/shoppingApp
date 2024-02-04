@@ -33,11 +33,9 @@ try {
 }
 
 // importing routes
-const route = require("./routes/routes");
 const userRoutes = require("./routes/userRoutes");
 
 // router middleware
-app.use("/api/v1", route);
 app.use("/api/v1/user", userRoutes);
 
 module.exports = app;

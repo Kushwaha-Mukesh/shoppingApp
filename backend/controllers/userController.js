@@ -2,6 +2,7 @@ const cookieToken = require("../utils/cookieToken");
 const User = require("../models/user");
 const mailGenerator = require("../utils/emailGenerator");
 const cloudinary = require("cloudinary").v2;
+const crypto = require("crypto");
 
 exports.signup = async (req, res, next) => {
   try {
@@ -87,14 +88,14 @@ exports.forgotPassword = async (req, res) => {
 
     const forgotToken = user.getForgotPasswordToken();
 
-    // flage used in save method is save the forgot token and expire of token without validating all the field.
+    // flag used in save method is save the forgot token and expire of token without validating all the field.
     await user.save({ validateBeforeSave: false });
 
     // this url is created to send mail to the user who forgot password
     // here req.protocol is https or http and req.get("host") is localhost or any other host and remaining is route and forgot token
     const myUrl = `${req.protocol}://${req.get(
       "host"
-    )}/password/reset/${forgotToken}`;
+    )}/api/v1/user/password/reset/${forgotToken}`;
 
     const message = `copy and paste this link in your browser \n\n ${myUrl}`;
 
@@ -116,5 +117,51 @@ exports.forgotPassword = async (req, res) => {
     }
   } catch (error) {
     res.status(501).send("Error in forgot password route: " + error.message);
+  }
+};
+
+exports.forgotPasswordReset = async (req, res) => {
+  try {
+    const forgotToken = req.params.forgotToken;
+    const encryptForgotToken = crypto
+      .createHash("sha256")
+      .update(forgotToken)
+      .digest("hex");
+
+    const user = await User.findOne({
+      forgotPasswordToken: encryptForgotToken,
+      forgotPasswordExpiry: { $gt: Date.now() }, // here $gt query looks for the time greater than now. $gt is given by mongoose.
+    });
+
+    if (!user) {
+      res
+        .status(301)
+        .send("Invalid token or token expired. Please try again!!!");
+      return;
+    }
+
+    const { password, confirmPassword } = req.body;
+    if (password !== confirmPassword) {
+      res
+        .status(301)
+        .send("password and confirm password are not same. Please try again!");
+      return;
+    }
+
+    // here password is update with new password.
+    user.password = password;
+    // after upadate of password these field should be undefined.
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordExpiry = undefined;
+
+    // and save the changes to that specific user db.
+    await user.save();
+
+    // here we can send success message instead of token and user.
+    cookieToken(user, res);
+  } catch (error) {
+    res
+      .status(501)
+      .send("Error on resetting forgot password: " + error.message);
   }
 };
