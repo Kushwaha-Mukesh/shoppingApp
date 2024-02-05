@@ -74,7 +74,7 @@ exports.logout = (req, res) => {
     expires: new Date(Date.now()),
     httpOnly: true,
   });
-  res.status(200).send("User logged out successfully");
+  res.status(200).send("Logged out successfully");
 };
 
 exports.forgotPassword = async (req, res) => {
@@ -163,5 +163,78 @@ exports.forgotPasswordReset = async (req, res) => {
     res
       .status(501)
       .send("Error on resetting forgot password: " + error.message);
+  }
+};
+
+exports.getLoggedInUserDetails = async (req, res) => {
+  const user = await User.findById(req.user.id);
+  res.status(200).json({
+    success: true,
+    user,
+  });
+};
+
+exports.changePassword = async (req, res) => {
+  const userId = req.user.id;
+
+  const user = await User.findById(userId).select("+password");
+  const IsCorrectOldPassword = await user.isValidatePassword(
+    req.body.oldPassword
+  );
+  if (!IsCorrectOldPassword) {
+    res.status(301).send("Enter the correct old password");
+    return;
+  }
+
+  user.password = req.body.newPassword;
+  await user.save();
+
+  cookieToken(user, res);
+};
+
+exports.updateUserDetails = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name || !email) {
+      res.status(301).send("Please enter a name or email address to update.");
+      return;
+    }
+    const newUserData = {
+      name,
+      email,
+    }; // data send by user to update their details.
+
+    if (req.files) {
+      const user = await User.findById(req.user.id);
+
+      // destroying old photo
+      const resp = await cloudinary.uploader.destroy(user.photo.id);
+
+      // uploading new photo
+      const result = await cloudinary.uploader.upload(
+        req.files.photo.tempFilePath,
+        {
+          folder: "users",
+          width: 150,
+          crop: "scale",
+        }
+      );
+
+      newUserData.photo = {
+        id: result.public_id,
+        secure_url: result.secure_url,
+      };
+    }
+    const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+      runValidators: true,
+      new: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(501).send("Error updating user details: " + error.message);
   }
 };
