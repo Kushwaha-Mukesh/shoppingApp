@@ -238,3 +238,73 @@ exports.updateUserDetails = async (req, res) => {
     res.status(501).send("Error updating user details: " + error.message);
   }
 };
+
+exports.adminUser = async (req, res) => {
+  try {
+    const allUsers = await User.find();
+    res.status(200).json({
+      success: true,
+      users: allUsers,
+    });
+  } catch (error) {
+    res.status(501).send("Error getting all the users." + error.message);
+  }
+};
+
+exports.managerUser = async (req, res) => {
+  try {
+    const users = await User.find({ role: "user" });
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    res.status(500).send("error getting manager user: " + error.message);
+  }
+};
+
+exports.admingetoneuser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      res.status(401).send("user not found");
+      return;
+    }
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    res.status(501).send("error while getting user: " + error.message);
+  }
+};
+
+exports.adminUpdateUser = async (req, res) => {
+  try {
+    const newData = {
+      name: req.body.name,
+      email: req.body.email,
+      role: req.body.role,
+    };
+    const user = await User.findByIdAndUpdate(req.params.id, newData, {
+      new: true,
+      runValidators: true,
+    });
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(501).send("Error while updating user details: " + error.message);
+  }
+};
+
+exports.adminDeleteUser = async (req, res) => {
+  try {
+    const userDetails = await User.findById(req.params.id);
+    if (!userDetails) {
+      res.status(404).send("user does not exist");
+      return;
+    }
+    const userphotoId = userDetails.photo.id;
+    await cloudinary.uploader.destroy(userphotoId);
+    const user = await User.findByIdAndDelete(req.params.id);
+    res.status(200).send(user.name + " user deleted");
+  } catch (error) {
+    res.status(501).send("error while deleting user: " + error.message);
+  }
+};

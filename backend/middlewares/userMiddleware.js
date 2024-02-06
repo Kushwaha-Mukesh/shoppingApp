@@ -17,3 +17,17 @@ exports.isLoggedIn = async (req, res, next) => {
     res.status(501).send("Error in user middleware file: " + error.message);
   }
 };
+
+exports.role = (...role) => {
+  try {
+    return (req, res, next) => {
+      if (!role.includes(req.user.role)) {
+        res.status(301).send("Access denied!!!");
+        return;
+      }
+      next();
+    };
+  } catch (error) {
+    res.status(500).send("Error in getting role: " + error.message);
+  }
+};
