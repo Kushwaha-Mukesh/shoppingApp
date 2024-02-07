@@ -34,8 +34,10 @@ try {
 
 // importing routes
 const userRoutes = require("./routes/userRoutes");
+const productRoutes = require("./routes/productRoutes");
 
 // router middleware
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/product", productRoutes);
 
 module.exports = app;
